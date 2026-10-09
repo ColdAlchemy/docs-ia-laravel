@@ -1,0 +1,15 @@
+/vendor
+/node_modules
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+.env
+.env.backup
+.phpunit.result.cache
+/database/*.sqlite
+/database/*.sqlite-journal
+Auth.json
+Homestead.*
+npm-debug.log
