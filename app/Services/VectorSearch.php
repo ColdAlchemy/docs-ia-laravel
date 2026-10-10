@@ -9,15 +9,16 @@ use App\Models\Trecho;
  * Busca semântica por similaridade de cosseno sobre os embeddings dos trechos.
  * Calculada em PHP para manter o projeto simples; em escala, o lugar disso é um
  * banco vetorial (pgvector, Elasticsearch/OpenSearch etc.) atrás desta mesma classe.
+ * Toda busca é restrita a um escopo (espaço de trabalho, e opcionalmente um documento).
  */
 class VectorSearch
 {
     public function __construct(private readonly Embedder $embedder) {}
 
     /**
-     * @return array<int, array{trecho_id: int, documento_id: int, titulo: string, texto: string, score: float}>
+     * @return array<int, array{trecho_id: int, documento_id: int, titulo: string, registro: string, texto: string, score: float}>
      */
-    public function search(string $query, ?int $limit = null, ?float $minScore = null): array
+    public function search(string $query, Escopo $escopo, ?int $limit = null, ?float $minScore = null): array
     {
         $limit ??= config('ia.search.limit');
         $minScore ??= config('ia.search.min_score');
@@ -26,8 +27,12 @@ class VectorSearch
 
         $scored = [];
         Trecho::query()
-            ->with('documento:id,titulo')
-            ->whereHas('documento', fn ($q) => $q->where('status', 'pronto'))
+            ->with('documento:id,titulo,numero,created_at')
+            ->whereHas('documento', function ($q) use ($escopo) {
+                $q->where('status', 'pronto')
+                    ->where('espaco_id', $escopo->espacoId)
+                    ->when($escopo->documentoId, fn ($q, $id) => $q->where('id', $id));
+            })
             ->lazyById()
             ->each(function (Trecho $trecho) use ($queryVector, $minScore, &$scored) {
                 $score = $this->cosine($queryVector, $trecho->embedding);
@@ -36,6 +41,7 @@ class VectorSearch
                         'trecho_id' => $trecho->id,
                         'documento_id' => $trecho->documento_id,
                         'titulo' => $trecho->documento->titulo,
+                        'registro' => $trecho->documento->registro(),
                         'texto' => $trecho->texto,
                         'score' => round($score, 4),
                     ];

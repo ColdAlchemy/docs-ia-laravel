@@ -6,8 +6,9 @@ use App\Ai\Contracts\AiClient;
 use App\Ai\Drivers\AnthropicClient;
 use App\Services\AgentTools;
 use App\Services\DocumentAgent;
-use Illuminate\Http\Client\Factory as Http;
+use App\Services\Escopo;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Factory as Http;
 use Illuminate\Support\Facades\Http as HttpFacade;
 use RuntimeException;
 use Tests\TestCase;
@@ -89,7 +90,7 @@ class AnthropicDriverTest extends TestCase
 
         $this->app->instance(AiClient::class, $this->client());
 
-        $r = app(DocumentAgent::class)->ask('Quais os prazos?');
+        $r = app(DocumentAgent::class)->ask('Quais os prazos?', new Escopo(1));
 
         $this->assertSame('list_prazos', $r['passos'][0]['ferramenta']);
         $this->assertSame('Não há prazos cadastrados.', $r['resposta']);
@@ -102,6 +103,6 @@ class AnthropicDriverTest extends TestCase
 
     public function test_ferramenta_desconhecida_devolve_erro_sem_quebrar(): void
     {
-        $this->assertArrayHasKey('erro', app(AgentTools::class)->run('nao_existe', []));
+        $this->assertArrayHasKey('erro', app(AgentTools::class)->comEscopo(new Escopo(1))->run('nao_existe', []));
     }
 }

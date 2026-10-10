@@ -9,7 +9,7 @@ class Trecho extends Model
 {
     protected $table = 'trechos';
 
-    protected $fillable = ['documento_id', 'ordem', 'texto', 'embedding'];
+    protected $fillable = ['documento_id', 'ordem', 'texto', 'embedding', 'inicio', 'fim'];
 
     protected function casts(): array
     {

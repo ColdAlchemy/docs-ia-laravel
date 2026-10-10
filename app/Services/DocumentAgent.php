@@ -25,15 +25,16 @@ class DocumentAgent
      * @param  array<int, array{role: string, content: string}>  $history  mensagens anteriores (texto)
      * @return array{resposta: string, fontes: array<int, array<string, mixed>>, passos: array<int, array<string, mixed>>, avaliacao: array<string, mixed>}
      */
-    public function ask(string $question, array $history = []): array
+    public function ask(string $question, Escopo $escopo, array $history = []): array
     {
+        $tools = $this->tools->comEscopo($escopo);
         $messages = [...$history, ['role' => 'user', 'content' => $question]];
         $steps = [];
         $sources = [];
         $answer = '';
 
         for ($i = 0; $i < config('ia.agent_max_steps'); $i++) {
-            $response = $this->ai->chat(self::SYSTEM, $messages, $this->tools->definitions());
+            $response = $this->ai->chat(self::SYSTEM, $messages, $tools->definitions());
 
             if (! $response->wantsTools()) {
                 $answer = $response->text ?? '';
@@ -44,7 +45,7 @@ class DocumentAgent
 
             $results = [];
             foreach ($response->toolCalls as $call) {
-                $output = $this->tools->run($call['name'], $call['input']);
+                $output = $tools->run($call['name'], $call['input']);
                 $steps[] = ['ferramenta' => $call['name'], 'entrada' => $call['input']];
 
                 foreach ($output['resultados'] ?? [] as $hit) {

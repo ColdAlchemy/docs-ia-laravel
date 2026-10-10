@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\Documento;
-use Carbon\Carbon;
+use App\Models\Prazo;
 
 /**
  * Ferramentas que o agente pode chamar (tool calling). Cada ferramenta tem:
@@ -11,7 +11,16 @@ use Carbon\Carbon;
  */
 class AgentTools
 {
-    public function __construct(private readonly VectorSearch $search) {}
+    public function __construct(
+        private readonly VectorSearch $search,
+        private readonly ?Escopo $escopo = null,
+    ) {}
+
+    /** Cópia da caixa de ferramentas restrita a um espaço (e talvez a um documento). */
+    public function comEscopo(Escopo $escopo): self
+    {
+        return new self($this->search, $escopo);
+    }
 
     /** @return array<int, array<string, mixed>> */
     public function definitions(): array
@@ -40,7 +49,7 @@ class AgentTools
             ],
             [
                 'name' => 'list_prazos',
-                'description' => 'Lista os prazos (datas) extraídos de todos os documentos prontos, em ordem cronológica.',
+                'description' => 'Lista os prazos (datas) extraídos dos documentos prontos, em ordem cronológica.',
                 'input_schema' => ['type' => 'object', 'properties' => new \stdClass],
             ],
         ];
@@ -48,10 +57,14 @@ class AgentTools
 
     /**
      * @param  array<string, mixed>  $input
-     * @return array<string, mixed>  resultado serializável em JSON
+     * @return array<string, mixed> resultado serializável em JSON
      */
     public function run(string $name, array $input): array
     {
+        if ($this->escopo === null) {
+            return ['erro' => 'Ferramentas sem escopo definido.'];
+        }
+
         return match ($name) {
             'search_documents' => $this->searchDocuments($input),
             'get_document' => $this->getDocument($input),
@@ -68,12 +81,14 @@ class AgentTools
         }
         $limit = max(1, min(8, (int) ($input['limit'] ?? 3)));
 
-        return ['resultados' => $this->search->search($query, $limit)];
+        return ['resultados' => $this->search->search($query, $this->escopo, $limit)];
     }
 
     private function getDocument(array $input): array
     {
-        $doc = Documento::find((int) ($input['documento_id'] ?? 0));
+        $doc = Documento::where('espaco_id', $this->escopo->espacoId)
+            ->when($this->escopo->documentoId, fn ($q, $id) => $q->where('id', $id))
+            ->find((int) ($input['documento_id'] ?? 0));
         if (! $doc || ! $doc->estaPronto()) {
             return ['erro' => 'Documento não encontrado ou ainda não processado.'];
         }
@@ -83,22 +98,19 @@ class AgentTools
 
     private function listPrazos(): array
     {
-        $prazos = [];
-        foreach (Documento::where('status', Documento::STATUS_PRONTO)->get() as $doc) {
-            foreach ($doc->dados['prazos'] ?? [] as $prazo) {
-                $date = Carbon::createFromFormat('d/m/Y', $prazo['data']) ?: null;
-                $prazos[] = [
-                    'documento_id' => $doc->id,
-                    'titulo' => $doc->titulo,
-                    'descricao' => $prazo['descricao'],
-                    'data' => $prazo['data'],
-                    '_ordem' => $date?->timestamp ?? PHP_INT_MAX,
-                ];
-            }
-        }
+        $prazos = Prazo::with('documento:id,titulo')
+            ->where('espaco_id', $this->escopo->espacoId)
+            ->when($this->escopo->documentoId, fn ($q, $id) => $q->where('documento_id', $id))
+            ->orderBy('data')
+            ->get()
+            ->map(fn (Prazo $p) => [
+                'documento_id' => $p->documento_id,
+                'titulo' => $p->documento->titulo,
+                'descricao' => $p->descricao,
+                'data' => $p->data->format('d/m/Y'),
+            ])
+            ->all();
 
-        usort($prazos, fn ($a, $b) => $a['_ordem'] <=> $b['_ordem']);
-
-        return ['prazos' => array_map(fn ($p) => array_diff_key($p, ['_ordem' => 1]), $prazos)];
+        return ['prazos' => $prazos];
     }
 }

@@ -20,7 +20,7 @@ return [
     'embedding_dims' => 256,
 
     // Tamanho máximo (caracteres) de cada trecho indexado.
-    'chunk_size' => 600,
+    'chunk_size' => 240,
 
     // Busca semântica.
     'search' => [

@@ -29,4 +29,27 @@ class ChunkerTest extends TestCase
     {
         $this->assertSame([], (new Chunker)->split("  \n\n  "));
     }
+
+    public function test_posicoes_apontam_para_o_texto_original(): void
+    {
+        $texto = "Ação inicial: João   pagou R\$ 10,00.\nSegunda linha.\n\n   Segundo parágrafo, com acentuação: é útil.\n\n".str_repeat('Frase longa de teste. ', 20);
+
+        foreach ((new Chunker(80))->splitWithOffsets($texto) as $c) {
+            $original = mb_substr($texto, $c['inicio'], $c['fim'] - $c['inicio']);
+            $this->assertSame($c['texto'], trim(preg_replace('/\s+/u', ' ', $original)));
+        }
+    }
+
+    public function test_posicoes_de_uma_frase_gigante_cortada_em_pedacos(): void
+    {
+        $texto = 'Início '.str_repeat('palavra  ', 60).'fim sem ponto';
+
+        $pedacos = (new Chunker(50))->splitWithOffsets($texto);
+
+        $this->assertGreaterThan(1, count($pedacos));
+        foreach ($pedacos as $c) {
+            $this->assertLessThanOrEqual(50, mb_strlen($c['texto']));
+            $this->assertSame($c['texto'], trim(preg_replace('/\s+/u', ' ', mb_substr($texto, $c['inicio'], $c['fim'] - $c['inicio']))));
+        }
+    }
 }
