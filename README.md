@@ -2,7 +2,7 @@
 
 Aplicação Laravel para equipes que lidam com contratos, notificações e políticas. Você arquiva um documento (texto ou PDF), a IA **extrai partes, prazos e valores**, e você lê o documento com **anotações na margem** e faz perguntas que são respondidas com **notas de rodapé** apontando o trecho exato. Cada resposta recebe um carimbo de **fundamentada** ou **sem fundamento**.
 
-> Desenvolvido por mim com o auxílio do Claude Code. Eu defini o escopo, revisei e estudei o código; o guia `docs/ESTUDO.md` documenta cada parte. Os documentos de exemplo são fictícios, e a aplicação **não dá aconselhamento jurídico**.
+> Eu defini o escopo, revisei e estudei o código; o guia `docs/ESTUDO.md` documenta cada parte. Os documentos de exemplo são fictícios, e a aplicação **não dá aconselhamento jurídico**.
 
 ## O que ele faz
 | Tela | O que tem |
