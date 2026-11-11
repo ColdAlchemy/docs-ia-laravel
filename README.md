@@ -38,6 +38,10 @@ Pergunta ──► Consultas ──► DocumentAgent(Escopo) ──► AiClient:
   - `fake`: offline e determinístico (padrão em dev/testes; não precisa de chave).
 - **`Embedder`** também é uma interface. O padrão é um embedder local por *feature hashing* (lexical, sem rede). Em produção, troque por um embedder de provedor e o armazenamento por um banco vetorial (pgvector, Elasticsearch/OpenSearch) mantendo a interface de `VectorSearch`.
 
+## Projetos relacionados
+- [rag-eval](https://github.com/ColdAlchemy/rag-eval): mede a qualidade da **busca** de um sistema RAG como este (Recall, MRR e nDCG, com a lista de perguntas que cada método errou).
+- [arquivo-mcp](https://github.com/ColdAlchemy/arquivo-mcp): servidor **MCP** que deixa o Claude Desktop ou o Claude Code consultar os documentos deste arquivo, somente leitura.
+
 ## Stack
 PHP 8.4 · Laravel 13 · Eloquent · Filas · Form Requests · Vue 3 · Vite · SQLite · PHPUnit · `smalot/pdfparser`
 
